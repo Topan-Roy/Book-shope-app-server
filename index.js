@@ -79,7 +79,31 @@ app.get("/users/:email", async (req, res) => {
   }
 });
 
+// ADD Book
+    app.post("/books", async (req, res) => {
+      const book = req.body;
+      const result = await booksCollection.insertOne(book);
+      res.send(result);
+    });
 
+   // GET Books (All + Filter by category)
+app.get("/books", async (req, res) => {
+  try {
+    const category = req.query.category;
+    let query = {};
+
+    if (category) {
+      query.category = category;
+    }
+
+    const result = await booksCollection.find(query).toArray();
+    res.send(result);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ message: "Server Error", error });
+  }
+});
 
 
 
@@ -89,18 +113,7 @@ app.get("/users/:email", async (req, res) => {
       res.send("Book Shop Server Running");
     });
 
-    // ADD Book
-    app.post("/books", async (req, res) => {
-      const data = req.body;
-      const result = await booksCollection.insertOne(data);
-      res.send(result);
-    });
-
-    // GET all Books
-    app.get("/books", async (req, res) => {
-      const result = await booksCollection.find().toArray();
-      res.send(result);
-    });
+    
 
     await client.db("admin").command({ ping: 1 });
     console.log("🚀 MongoDB Connected Successfully!");
