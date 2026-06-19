@@ -252,6 +252,32 @@ async function run() {
       }
     });
 
+    // GET all users
+    app.get("/users", async (req, res) => {
+      try {
+        const result = await usersCollection.find({}).toArray();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // UPDATE user role
+    app.patch("/users/role/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { role } = req.body;
+        const { ObjectId } = require("mongodb");
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { role } }
+        );
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
     // ========================
     // USERS - Update profile
     // ========================
@@ -266,6 +292,44 @@ async function run() {
         res.json({ success: true, result });
       } catch (error) {
         res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // GET all orders (Admin)
+    app.get("/all-orders", async (req, res) => {
+      try {
+        const result = await ordersCollection.find({}).sort({ createdAt: -1 }).toArray();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // UPDATE order status
+    app.patch("/orders/status/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { status } = req.body;
+        const { ObjectId } = require("mongodb");
+        const result = await ordersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // DELETE Book
+    app.delete("/books/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { ObjectId } = require("mongodb");
+        const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Error deleting item", error: err });
       }
     });
 
