@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
@@ -9,6 +10,31 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// ========================
+// JWT API & Middlewares
+// ========================
+
+app.post("/jwt", async (req, res) => {
+  const user = req.body;
+  const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1h" });
+  res.send({ token });
+});
+
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  const token = req.headers.authorization.split(" ")[1];
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 // MongoDB Connection
 const uri = process.env.MONGO_URI;
@@ -30,6 +56,18 @@ async function run() {
     const contactsCollection = db.collection("contacts");
     const ordersCollection = db.collection("orders");
     const wishlistCollection = db.collection("wishlist");
+
+    // Middlewares for admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
     // POST contact message
     app.post("/contacts", async (req, res) => {
@@ -121,13 +159,13 @@ async function run() {
     });
 
     // Carts Collection APIs
-    app.post("/carts", async (req, res) => {
+    app.post("/carts", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await cartsCollection.insertOne(item);
       res.send(result);
     });
 
-    app.get("/carts", async (req, res) => {
+    app.get("/carts", verifyToken, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         return res.send([]);
@@ -138,11 +176,10 @@ async function run() {
     });
 
     // UPDATE cart item quantity
-    app.patch("/carts/:id", async (req, res) => {
+    app.patch("/carts/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
         const { quantity } = req.body;
-        const { ObjectId } = require("mongodb");
         const result = await cartsCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: { quantity: quantity } }
@@ -154,10 +191,9 @@ async function run() {
     });
 
     // DELETE cart item
-    app.delete("/carts/:id", async (req, res) => {
+    app.delete("/carts/:id", verifyToken, async (req, res) => {
       try {
         const id = req.params.id;
-        const { ObjectId } = require("mongodb");
         const result = await cartsCollection.deleteOne({ _id: new ObjectId(id) });
         res.send(result);
       } catch (err) {
@@ -173,7 +209,7 @@ async function run() {
     // ========================
 
     // POST - Save a new order after successful payment
-    app.post("/orders", async (req, res) => {
+    app.post("/orders", verifyToken, async (req, res) => {
       try {
         const order = req.body;
         order.createdAt = new Date();
@@ -187,7 +223,7 @@ async function run() {
     });
 
     // GET - Fetch all orders for a user by email
-    app.get("/orders", async (req, res) => {
+    app.get("/orders", verifyToken, async (req, res) => {
       try {
         const email = req.query.email;
         if (!email) return res.send([]);
@@ -206,7 +242,7 @@ async function run() {
     // ========================
 
     // POST - Add a book to wishlist (prevent duplicates)
-    app.post("/wishlist", async (req, res) => {
+    app.post("/wishlist", verifyToken, async (req, res) => {
       try {
         const item = req.body; // { email, bookId, title, author, price, img }
         const existing = await wishlistCollection.findOne({
@@ -225,7 +261,7 @@ async function run() {
     });
 
     // GET - Fetch wishlist by user email
-    app.get("/wishlist", async (req, res) => {
+    app.get("/wishlist", verifyToken, async (req, res) => {
       try {
         const email = req.query.email;
         if (!email) return res.send([]);
@@ -240,9 +276,8 @@ async function run() {
     });
 
     // DELETE - Remove from wishlist by id
-    app.delete("/wishlist/:id", async (req, res) => {
+    app.delete("/wishlist/:id", verifyToken, async (req, res) => {
       try {
-        const { ObjectId } = require("mongodb");
         const result = await wishlistCollection.deleteOne({
           _id: new ObjectId(req.params.id),
         });
@@ -252,8 +287,8 @@ async function run() {
       }
     });
 
-    // GET all users
-    app.get("/users", async (req, res) => {
+    // GET all users (Admin only)
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const result = await usersCollection.find({}).toArray();
         res.json(result);
@@ -262,12 +297,11 @@ async function run() {
       }
     });
 
-    // UPDATE user role
-    app.patch("/users/role/:id", async (req, res) => {
+    // UPDATE user role (Admin only)
+    app.patch("/users/role/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const { role } = req.body;
-        const { ObjectId } = require("mongodb");
         const result = await usersCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: { role } }
@@ -281,7 +315,7 @@ async function run() {
     // ========================
     // USERS - Update profile
     // ========================
-    app.patch("/users/:email", async (req, res) => {
+    app.patch("/users/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const updates = req.body; // { name, photoURL }
@@ -295,8 +329,8 @@ async function run() {
       }
     });
 
-    // GET all orders (Admin)
-    app.get("/all-orders", async (req, res) => {
+    // GET all orders (Admin only)
+    app.get("/all-orders", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const result = await ordersCollection.find({}).sort({ createdAt: -1 }).toArray();
         res.json(result);
@@ -305,12 +339,11 @@ async function run() {
       }
     });
 
-    // UPDATE order status
-    app.patch("/orders/status/:id", async (req, res) => {
+    // UPDATE order status (Admin only)
+    app.patch("/orders/status/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
         const { status } = req.body;
-        const { ObjectId } = require("mongodb");
         const result = await ordersCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: { status } }
@@ -321,11 +354,10 @@ async function run() {
       }
     });
 
-    // DELETE Book
-    app.delete("/books/:id", async (req, res) => {
+    // DELETE Book (Admin only)
+    app.delete("/books/:id", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
-        const { ObjectId } = require("mongodb");
         const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
         res.send(result);
       } catch (err) {
