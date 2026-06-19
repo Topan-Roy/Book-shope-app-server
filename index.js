@@ -27,9 +27,20 @@ async function run() {
     const booksCollection = db.collection("books");
     const usersCollection = db.collection("users");
     const cartsCollection = db.collection("carts");
+    const contactsCollection = db.collection("contacts");
 
-
-
+    // POST contact message
+    app.post("/contacts", async (req, res) => {
+      try {
+        const contact = req.body;
+        contact.createdAt = new Date();
+        const result = await contactsCollection.insertOne(contact);
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("Error saving contact inquiry:", error);
+        res.status(500).send({ success: false, message: "Server Error", error });
+      }
+    });
 
     app.post("/register", async (req, res) => {
       try {
