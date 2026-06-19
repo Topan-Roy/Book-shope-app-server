@@ -28,6 +28,8 @@ async function run() {
     const usersCollection = db.collection("users");
     const cartsCollection = db.collection("carts");
     const contactsCollection = db.collection("contacts");
+    const ordersCollection = db.collection("orders");
+    const wishlistCollection = db.collection("wishlist");
 
     // POST contact message
     app.post("/contacts", async (req, res) => {
@@ -165,6 +167,107 @@ async function run() {
 
 
 
+
+    // ========================
+    // ORDERS Collection APIs
+    // ========================
+
+    // POST - Save a new order after successful payment
+    app.post("/orders", async (req, res) => {
+      try {
+        const order = req.body;
+        order.createdAt = new Date();
+        order.status = order.status || "Processing";
+        const result = await ordersCollection.insertOne(order);
+        res.status(201).json({ success: true, orderId: result.insertedId });
+      } catch (error) {
+        console.error("Error saving order:", error);
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // GET - Fetch all orders for a user by email
+    app.get("/orders", async (req, res) => {
+      try {
+        const email = req.query.email;
+        if (!email) return res.send([]);
+        const result = await ordersCollection
+          .find({ email })
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // ========================
+    // WISHLIST Collection APIs
+    // ========================
+
+    // POST - Add a book to wishlist (prevent duplicates)
+    app.post("/wishlist", async (req, res) => {
+      try {
+        const item = req.body; // { email, bookId, title, author, price, img }
+        const existing = await wishlistCollection.findOne({
+          email: item.email,
+          bookId: item.bookId,
+        });
+        if (existing) {
+          return res.status(409).json({ success: false, message: "Already in wishlist" });
+        }
+        item.addedAt = new Date();
+        const result = await wishlistCollection.insertOne(item);
+        res.status(201).json({ success: true, id: result.insertedId });
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // GET - Fetch wishlist by user email
+    app.get("/wishlist", async (req, res) => {
+      try {
+        const email = req.query.email;
+        if (!email) return res.send([]);
+        const result = await wishlistCollection
+          .find({ email })
+          .sort({ addedAt: -1 })
+          .toArray();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // DELETE - Remove from wishlist by id
+    app.delete("/wishlist/:id", async (req, res) => {
+      try {
+        const { ObjectId } = require("mongodb");
+        const result = await wishlistCollection.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
+
+    // ========================
+    // USERS - Update profile
+    // ========================
+    app.patch("/users/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const updates = req.body; // { name, photoURL }
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { ...updates, updatedAt: new Date() } }
+        );
+        res.json({ success: true, result });
+      } catch (error) {
+        res.status(500).json({ success: false, message: "Server Error", error });
+      }
+    });
 
     // Stripe Payment Intent
     app.post("/create-payment-intent", async (req, res) => {
