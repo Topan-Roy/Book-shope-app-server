@@ -8,7 +8,10 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || "*",
+  credentials: true,
+}));
 app.use(express.json());
 
 // ========================
@@ -403,6 +406,7 @@ async function run() {
 run().catch(console.dir);
 
 // Start Server
-app.listen(process.env.PORT, () => {
-  console.log(`🔥 Server Running on Port: ${process.env.PORT}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🔥 Server Running on Port: ${PORT}`);
 });
