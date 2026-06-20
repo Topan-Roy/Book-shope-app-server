@@ -29,7 +29,7 @@
 - 👤 **User Management** — Register, login, profile update
 - 📖 **Books CRUD** — Add, fetch, delete books (Admin only for delete)
 - 🛒 **Cart System** — Add, update quantity, remove cart items
-- ❤️ **Wishlist** — Save favorite books
+- ❤️ **Wishlist** — Save favourite books
 - 📦 **Orders** — Place orders, track status
 - 💳 **Stripe Payment** — Secure payment intent creation
 - 📩 **Contact Form** — Save user inquiries
@@ -39,15 +39,16 @@
 
 ## 🏗️ Tech Stack
 
-| Technology | Purpose |
-|---|---|
-| **Node.js** | Runtime Environment |
-| **Express.js** | Web Framework |
-| **MongoDB Atlas** | Cloud Database |
-| **JWT (jsonwebtoken)** | Authentication |
-| **Stripe** | Payment Gateway |
-| **dotenv** | Environment Variables |
-| **cors** | Cross-Origin Resource Sharing |
+| Technology | Version | Purpose |
+|---|---|---|
+| **Node.js** | v18+ | Runtime Environment |
+| **Express.js** | ^5.1.0 | Web Framework |
+| **MongoDB** | ^7.0.0 | Database Driver |
+| **MongoDB Atlas** | Cloud | Cloud Database |
+| **JWT (jsonwebtoken)** | ^9.0.3 | Authentication |
+| **Stripe** | ^22.2.2 | Payment Gateway |
+| **dotenv** | ^17.2.3 | Environment Variables |
+| **cors** | ^2.8.5 | Cross-Origin Resource Sharing |
 
 ---
 
@@ -77,6 +78,8 @@ JWT_SECRET=your_jwt_secret_key
 CLIENT_URL=http://localhost:5173
 ```
 
+> ⚠️ **Important:** `.env` ফাইল কখনো GitHub-এ push করবেন না।
+
 ---
 
 ## 🚀 Local Setup
@@ -99,7 +102,7 @@ cd Book-shope-app-server
 npm install
 
 # 4. .env ফাইল তৈরি করুন এবং variables সেট করুন
-cp .env.example .env
+# (উপরের Environment Variables section দেখুন)
 
 # 5. Development server চালু করুন
 npm run dev
@@ -109,36 +112,45 @@ npm run dev
 
 ---
 
+## 📜 Scripts
+
+```bash
+npm start       # Production server চালু (node index.js)
+npm run dev     # Development server চালু (nodemon index.js)
+```
+
+---
+
 ## 📡 API Endpoints
 
 ### 🔑 Authentication
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `POST` | `/jwt` | JWT token generate | ❌ |
 | `POST` | `/register` | নতুন user register | ❌ |
 
 ### 👤 Users
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `GET` | `/users/:email` | User info by email | ❌ |
 | `PATCH` | `/users/:email` | Profile update | 🔐 Token |
 | `GET` | `/users` | সব users (Admin) | 🔐 Admin |
-| `PATCH` | `/users/role/:id` | User role update (Admin) | 🔐 Admin |
+| `PATCH` | `/users/role/:id` | User role update | 🔐 Admin |
 
 ### 📚 Books
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `GET` | `/books` | সব books / category filter | ❌ |
 | `POST` | `/books` | নতুন book add | ❌ |
-| `DELETE` | `/books/:id` | Book delete (Admin) | 🔐 Admin |
+| `DELETE` | `/books/:id` | Book delete | 🔐 Admin |
 
 ### 🛒 Cart
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `GET` | `/carts?email=` | User এর cart items | 🔐 Token |
 | `POST` | `/carts` | Cart-এ item add | 🔐 Token |
 | `PATCH` | `/carts/:id` | Item quantity update | 🔐 Token |
@@ -146,31 +158,31 @@ npm run dev
 
 ### ❤️ Wishlist
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `GET` | `/wishlist?email=` | User এর wishlist | 🔐 Token |
 | `POST` | `/wishlist` | Wishlist-এ add | 🔐 Token |
 | `DELETE` | `/wishlist/:id` | Wishlist থেকে remove | 🔐 Token |
 
 ### 📦 Orders
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `POST` | `/orders` | নতুন order place | 🔐 Token |
 | `GET` | `/orders?email=` | User এর orders | 🔐 Token |
 | `GET` | `/all-orders` | সব orders (Admin) | 🔐 Admin |
-| `PATCH` | `/orders/status/:id` | Order status update (Admin) | 🔐 Admin |
+| `PATCH` | `/orders/status/:id` | Order status update | 🔐 Admin |
 
 ### 💳 Payment
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `POST` | `/create-payment-intent` | Stripe payment intent create | ❌ |
 
 ### 📩 Contact
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|:---:|
 | `POST` | `/contacts` | Contact message save | ❌ |
 
 ---
@@ -190,9 +202,22 @@ Client                          Server
 
 ---
 
+## 🗄️ Database Collections
+
+| Collection | Description |
+|---|---|
+| `books` | সব book এর তথ্য |
+| `users` | Registered users |
+| `carts` | Shopping cart items |
+| `orders` | Placed orders |
+| `wishlist` | User wishlist |
+| `contacts` | Contact form submissions |
+
+---
+
 ## 🌍 Render Deployment Guide
 
-### Step 1: GitHub Push করুন
+### Step 1: GitHub-এ Push করুন
 ```bash
 git add .
 git commit -m "ready for deployment"
@@ -213,36 +238,19 @@ git push origin main
 | **Instance Type** | `Free` |
 
 ### Step 4: Environment Variables সেট করুন
-Render Dashboard → Environment → নিচের সব variables add করুন:
-- `MONGO_URI`
-- `STRIPE_SECRET_KEY`
-- `JWT_SECRET`
-- `CLIENT_URL` *(আপনার frontend URL)*
+Render Dashboard → **Environment** → নিচের সব variables add করুন:
+
+| Key | Value |
+|-----|-------|
+| `MONGO_URI` | Your MongoDB Atlas connection string |
+| `STRIPE_SECRET_KEY` | Your Stripe secret key |
+| `JWT_SECRET` | Your custom JWT secret |
+| `CLIENT_URL` | আপনার frontend এর deployed URL |
 
 ### Step 5: MongoDB Atlas Network Access
-- Atlas → **Network Access** → **Add IP** → `0.0.0.0/0` *(Anywhere)*
+- Atlas → **Network Access** → **Add IP Address** → `0.0.0.0/0` *(Allow from Anywhere)*
 
----
-
-## 📜 Scripts
-
-```bash
-npm start       # Production server চালু (node index.js)
-npm run dev     # Development server চালু (nodemon index.js)
-```
-
----
-
-## 🗄️ Database Collections
-
-| Collection | Description |
-|---|---|
-| `books` | সব book এর তথ্য |
-| `users` | Registered users |
-| `carts` | Shopping cart items |
-| `orders` | Placed orders |
-| `wishlist` | User wishlist |
-| `contacts` | Contact form submissions |
+> ✅ Deploy সফল হলে আপনার server URL পাবেন — সেটা `CLIENT_URL` হিসেবে frontend-এ এবং Render-এ `CLIENT_URL` হিসেবে সেট করুন।
 
 ---
 
